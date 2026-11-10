@@ -13,7 +13,7 @@ const mangayomiSources = [
     "iconUrl": "https://www.google.com/s2/favicons?sz=256&domain=https://readcomicsonline.ru/",
     "typeSource": "single",
     "itemType": 0,
-    "version": "0.2.3",
+    "version": "0.2.4",
     "pkgPath": "readcomicsonline.dart"
   }
 ];
@@ -22,7 +22,11 @@ class DefaultExtension extends MProvider {
   String get getBaseUrl {
     try {
       if (source != null && source.baseUrl != null && source.baseUrl.isNotEmpty) {
-        return source.baseUrl;
+        var bUrl = source.baseUrl;
+        if (bUrl.endsWith("/")) {
+          bUrl = bUrl.substring(0, bUrl.length - 1);
+        }
+        return bUrl;
       }
     } catch (_) {}
     return "https://readcomicsonline.ru";
@@ -36,32 +40,44 @@ class DefaultExtension extends MProvider {
           "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
       "Referer": "$baseUrl/",
       "Origin": baseUrl,
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     };
   }
 
   Future<dynamic> request(String slug) async {
     String baseUrl = getBaseUrl;
     String url = slug;
-    if (!slug.contains(baseUrl)) {
-      url = baseUrl + slug;
+    if (!url.startsWith("/")) {
+      url = "/$url";
+    }
+    if (!url.contains(baseUrl)) {
+      url = "$baseUrl$url";
     }
     var res = await Client().get(Uri.parse(url), getHeaders());
     return parseHtml(res.body);
   }
 
   Future<MPages> getListPage(String slug, int page) async {
-    String url = "$slug page=$page";
+    String separator = slug.contains("?") ? "&" : "?";
+    String url = "$slug${separator}page=$page";
     var doc = await request(url);
     String baseUrl = getBaseUrl;
     List<MManga> list = [];
 
+    // Selettori estesi per adattarsi sia al vecchio layout che a quello aggiornato del dominio .ru
     var comicList = doc.select(".list-comic > .item");
+    if (comicList.isEmpty) {
+      comicList = doc.select(".list-comic .item");
+    }
     if (comicList.isEmpty) {
       comicList = doc.select(".group-item");
     }
+    if (comicList.isEmpty) {
+      comicList = doc.select("div.item");
+    }
 
     for (var item in comicList) {
-      var titleEl = item.selectFirst(".title") ?? item.selectFirst("a");
+      var titleEl = item.selectFirst(".title") ?? item.selectFirst("a.title") ?? item.selectFirst("a");
       String name = titleEl != null ? titleEl.text.trim() : "";
 
       var linkEl = item.selectFirst("a");
@@ -86,7 +102,7 @@ class DefaultExtension extends MProvider {
     bool hasNextPage = false;
     if (pager.isNotEmpty) {
       String lastText = pager.last.text;
-      hasNextPage = lastText.contains("Last") || lastText.contains("Next");
+      hasNextPage = lastText.contains("Last") || lastText.contains("Next") || lastText.contains(">");
     }
 
     return MPages(list, hasNextPage);
@@ -94,12 +110,12 @@ class DefaultExtension extends MProvider {
 
   @override
   Future<MPages> getPopular(int page) async {
-    return await getListPage("/ComicList/MostPopular?", page);
+    return await getListPage("/ComicList/MostPopular", page);
   }
 
   @override
   Future<MPages> getLatestUpdates(int page) async {
-    return await getListPage("/ComicList/LatestUpdate?", page);
+    return await getListPage("/ComicList/LatestUpdate", page);
   }
 
   @override
@@ -123,7 +139,7 @@ class DefaultExtension extends MProvider {
         : "";
 
     String slug =
-        "/AdvanceSearch?comicName=${Uri.encodeComponent(query)}&ig=${Uri.encodeComponent(genre)}&status=$status&pubDate=$year&";
+        "/AdvanceSearch?comicName=${Uri.encodeComponent(query)}&ig=${Uri.encodeComponent(genre)}&status=$status&pubDate=$year";
 
     return await getListPage(slug, page);
   }
@@ -145,7 +161,7 @@ class DefaultExtension extends MProvider {
     var doc = await request(cleanUrl);
     var detailsSection = doc.selectFirst(".barContent");
     if (detailsSection == null) {
-      throw Exception("Impossibile caricare i dettagli (Cloudflare)");
+      throw Exception("Impossibile caricare i dettagli");
     }
 
     var nameEl = detailsSection.selectFirst("a");
