@@ -13,17 +13,24 @@ const mangayomiSources = [
     "iconUrl": "https://www.google.com/s2/favicons?sz=256&domain=https://readcomicsonline.ru/",
     "typeSource": "single",
     "itemType": 0,
-    "version": "0.2.2",
+    "version": "0.2.3",
     "pkgPath": "readcomicsonline.dart"
   }
 ];
 
 class DefaultExtension extends MProvider {
-  String get defaultBaseUrl => "https://readcomicsonline.ru";
+  String get getBaseUrl {
+    try {
+      if (source != null && source.baseUrl != null && source.baseUrl.isNotEmpty) {
+        return source.baseUrl;
+      }
+    } catch (_) {}
+    return "https://readcomicsonline.ru";
+  }
 
   @override
   Map<String, String> getHeaders() {
-    String baseUrl = source.baseUrl.isNotEmpty ? source.baseUrl : defaultBaseUrl;
+    String baseUrl = getBaseUrl;
     return {
       "User-Agent":
           "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
@@ -33,7 +40,7 @@ class DefaultExtension extends MProvider {
   }
 
   Future<dynamic> request(String slug) async {
-    String baseUrl = source.baseUrl.isNotEmpty ? source.baseUrl : defaultBaseUrl;
+    String baseUrl = getBaseUrl;
     String url = slug;
     if (!slug.contains(baseUrl)) {
       url = baseUrl + slug;
@@ -45,7 +52,7 @@ class DefaultExtension extends MProvider {
   Future<MPages> getListPage(String slug, int page) async {
     String url = "$slug page=$page";
     var doc = await request(url);
-    String baseUrl = source.baseUrl.isNotEmpty ? source.baseUrl : defaultBaseUrl;
+    String baseUrl = getBaseUrl;
     List<MManga> list = [];
 
     var comicList = doc.select(".list-comic > .item");
@@ -129,7 +136,7 @@ class DefaultExtension extends MProvider {
       return 5;
     }
 
-    String baseUrl = source.baseUrl.isNotEmpty ? source.baseUrl : defaultBaseUrl;
+    String baseUrl = getBaseUrl;
     String cleanUrl = url;
     if (cleanUrl.contains(baseUrl)) {
       cleanUrl = cleanUrl.replaceAll(baseUrl, "");
