@@ -13,7 +13,7 @@ const mangayomiSources = [
     "iconUrl": "https://www.google.com/s2/favicons?sz=256&domain=https://readcomicsonline.ru/",
     "typeSource": "single",
     "itemType": 0,
-    "version": "0.2.5",
+    "version": "0.2.6",
     "pkgPath": "readcomicsonline.dart"
   }
 ];
@@ -70,7 +70,6 @@ class DefaultExtension extends MProvider {
     String baseUrl = getBaseUrl;
     List<MManga> list = [];
 
-    // Cerca gli elementi lista oppure fallback su tutti i container con classe item o comic
     var comicList = doc.select(".list-comic .item");
     if (comicList.isEmpty) comicList = doc.select(".group-item");
     if (comicList.isEmpty) comicList = doc.select(".item");
@@ -78,13 +77,13 @@ class DefaultExtension extends MProvider {
 
     for (var item in comicList) {
       var titleEl = item.selectFirst(".title") ?? item.selectFirst("a.title") ?? item.selectFirst("a");
-      String name = titleEl != null ? titleEl.text.trim() : "";
+      String name = (titleEl != null && titleEl.text != null) ? titleEl.text.trim() : "";
 
       var linkEl = item.selectFirst("a");
-      String link = linkEl != null ? linkEl.getHref : "";
+      String link = linkEl != null ? (linkEl.getHref ?? "") : "";
 
       var imgEl = item.selectFirst("img");
-      String imageSlug = imgEl != null ? imgEl.getSrc : "";
+      String imageSlug = imgEl != null ? (imgEl.getSrc ?? "") : "";
       String imageUrl = imageSlug.contains("http")
           ? imageSlug
           : "$baseUrl$imageSlug";
@@ -100,8 +99,8 @@ class DefaultExtension extends MProvider {
 
     var pager = doc.select("ul.pager > li, .pagination > li");
     bool hasNextPage = false;
-    if (pager.isNotEmpty) {
-      String lastText = pager.last.text;
+    if (pager.isNotEmpty && pager.last != null && pager.last.text != null) {
+      String lastText = pager.last.text.trim();
       hasNextPage = lastText.contains("Last") || lastText.contains("Next") || lastText.contains(">");
     }
 
@@ -148,18 +147,20 @@ class DefaultExtension extends MProvider {
     }
 
     var nameEl = detailsSection.selectFirst("a");
-    String name = nameEl != null ? nameEl.text.trim() : "Unknown";
+    String name = (nameEl != null && nameEl.text != null) ? nameEl.text.trim() : "Unknown";
 
     var rightBox = doc.selectFirst(".rightBox") ?? doc.selectFirst(".col-md-3");
     var imgEl = rightBox != null ? rightBox.selectFirst("img") : null;
-    String imageSlug = imgEl != null ? imgEl.getSrc : "";
+    String imageSlug = imgEl != null ? (imgEl.getSrc ?? "") : "";
     String imageUrl = imageSlug.contains("http")
         ? imageSlug
         : "$baseUrl$imageSlug";
 
     var pTag = detailsSection.select("p");
-    String description =
-        pTag.length >= 2 ? pTag[pTag.length - 2].text.trim() : "";
+    String description = "";
+    if (pTag.length >= 2 && pTag[pTag.length - 2] != null && pTag[pTag.length - 2].text != null) {
+      description = pTag[pTag.length - 2].text.trim();
+    }
 
     int status = 5;
     List<String> genre = [];
@@ -167,16 +168,18 @@ class DefaultExtension extends MProvider {
     String artist = "";
 
     for (var p in pTag) {
-      String itemText = p.text.trim();
-      if (itemText.contains("Genres:")) {
-        genre = itemText.replaceAll("Genres:", "").trim().split(", ");
-      } else if (itemText.contains("Status:")) {
-        String sts = itemText.replaceAll("Status:", "").trim().split("\n")[0];
-        status = statusCode(sts);
-      } else if (itemText.contains("Writer:")) {
-        author = itemText.replaceAll("Writer:", "").trim();
-      } else if (itemText.contains("Artist:")) {
-        artist = itemText.replaceAll("Artist:", "").trim();
+      if (p != null && p.text != null) {
+        String itemText = p.text.trim();
+        if (itemText.contains("Genres:")) {
+          genre = itemText.replaceAll("Genres:", "").trim().split(", ");
+        } else if (itemText.contains("Status:")) {
+          String sts = itemText.replaceAll("Status:", "").trim().split("\n")[0];
+          status = statusCode(sts);
+        } else if (itemText.contains("Writer:")) {
+          author = itemText.replaceAll("Writer:", "").trim();
+        } else if (itemText.contains("Artist:")) {
+          artist = itemText.replaceAll("Artist:", "").trim();
+        }
       }
     }
 
@@ -187,27 +190,30 @@ class DefaultExtension extends MProvider {
       if (tr.length > 2) {
         tr.removeRange(0, 2);
         for (var item in tr) {
-          var tds = item.select("td");
-          if (tds.isNotEmpty) {
-            var aTag = tds[0].selectFirst("a");
-            if (aTag != null) {
-              String chapLink = aTag.getHref;
-              String chapTitle = aTag.text.trim().replaceAll("$name ", "");
-              if (chapTitle.startsWith("_")) {
-                chapTitle = chapTitle.substring(1);
+          if (item != null) {
+            var tds = item.select("td");
+            if (tds.isNotEmpty && tds[0] != null) {
+              var aTag = tds[0].selectFirst("a");
+              if (aTag != null) {
+                String chapLink = aTag.getHref ?? "";
+                String rawTitle = aTag.text != null ? aTag.text.trim() : "";
+                String chapTitle = rawTitle.replaceAll("$name ", "");
+                if (chapTitle.startsWith("_")) {
+                  chapTitle = chapTitle.substring(1);
+                }
+
+                String uploadDate = (tds.length > 1 && tds[1] != null && tds[1].text != null) ? tds[1].text.trim() : "";
+                DateTime? date = DateTime.tryParse(uploadDate);
+                String dateUpload = date != null
+                    ? date.millisecondsSinceEpoch.toString()
+                    : DateTime.now().millisecondsSinceEpoch.toString();
+
+                MChapter chapter = MChapter();
+                chapter.url = chapLink;
+                chapter.name = chapTitle;
+                chapter.dateUpload = dateUpload;
+                chapters.add(chapter);
               }
-
-              String uploadDate = tds.length > 1 ? tds[1].text.trim() : "";
-              DateTime? date = DateTime.tryParse(uploadDate);
-              String dateUpload = date != null
-                  ? date.millisecondsSinceEpoch.toString()
-                  : DateTime.now().millisecondsSinceEpoch.toString();
-
-              MChapter chapter = MChapter();
-              chapter.url = chapLink;
-              chapter.name = chapTitle;
-              chapter.dateUpload = dateUpload;
-              chapters.add(chapter);
             }
           }
         }
@@ -232,14 +238,14 @@ class DefaultExtension extends MProvider {
   Future<List<String>> getPageList(String url) async {
     List<String> pages = [];
     var doc = await request(url);
-    String html = doc.outerHtml;
+    String html = doc.outerHtml ?? "";
 
     String baseUrlOverride = "";
     RegExp hostRegex = RegExp(r"return\s+baeu\s*\(\s*l\s*,\s*'([^']+?)'\s*\);?");
     var hostMatch = hostRegex.firstMatch(html);
     if (hostMatch != null && hostMatch.groupCount >= 1) {
-      baseUrlOverride = hostMatch.group(1)!;
-      if (!baseUrlOverride.endsWith("/")) {
+      baseUrlOverride = hostMatch.group(1) ?? "";
+      if (baseUrlOverride.isNotEmpty && !baseUrlOverride.endsWith("/")) {
         baseUrlOverride += "/";
       }
     }
@@ -248,7 +254,7 @@ class DefaultExtension extends MProvider {
     Iterable<RegExpMatch> matches = pageRegex.allMatches(html);
     for (var match in matches) {
       String? encodedImageUrl = match.group(1);
-      if (encodedImageUrl != null) {
+      if (encodedImageUrl != null && encodedImageUrl.isNotEmpty) {
         String decodedImageUrl = decodeImageUrl(encodedImageUrl, baseUrlOverride);
         pages.add(decodedImageUrl);
       }
@@ -279,10 +285,12 @@ class DefaultExtension extends MProvider {
   }
 
   String extractBeforeDecode(String url) {
+    if (url.length < 50) return url;
     return url.substring(15, 33) + url.substring(50);
   }
 
   String finalizeDecodedString(String decoded) {
+    if (decoded.length < 11) return decoded;
     return decoded.substring(0, decoded.length - 11) +
         decoded[decoded.length - 2] +
         decoded[decoded.length - 1];
