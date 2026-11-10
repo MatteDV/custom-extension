@@ -13,7 +13,7 @@ const mangayomiSources = [
     "iconUrl": "https://www.google.com/s2/favicons?sz=256&domain=https://readcomicsonline.ru/",
     "typeSource": "single",
     "itemType": 0,
-    "version": "0.2.1",
+    "version": "0.2.2",
     "pkgPath": "readcomicsonline.dart"
   }
 ];
@@ -32,7 +32,7 @@ class DefaultExtension extends MProvider {
     };
   }
 
-  Future<Document> request(String slug) async {
+  Future<dynamic> request(String slug) async {
     String baseUrl = source.baseUrl.isNotEmpty ? source.baseUrl : defaultBaseUrl;
     String url = slug;
     if (!slug.contains(baseUrl)) {
@@ -44,23 +44,23 @@ class DefaultExtension extends MProvider {
 
   Future<MPages> getListPage(String slug, int page) async {
     String url = "$slug page=$page";
-    Document doc = await request(url);
+    var doc = await request(url);
     String baseUrl = source.baseUrl.isNotEmpty ? source.baseUrl : defaultBaseUrl;
     List<MManga> list = [];
 
-    List<Element> comicList = doc.select(".list-comic > .item");
+    var comicList = doc.select(".list-comic > .item");
     if (comicList.isEmpty) {
       comicList = doc.select(".group-item");
     }
 
     for (var item in comicList) {
-      Element? titleEl = item.selectFirst(".title") ?? item.selectFirst("a");
+      var titleEl = item.selectFirst(".title") ?? item.selectFirst("a");
       String name = titleEl != null ? titleEl.text.trim() : "";
 
-      Element? linkEl = item.selectFirst("a");
+      var linkEl = item.selectFirst("a");
       String link = linkEl != null ? linkEl.getHref : "";
 
-      Element? imgEl = item.selectFirst("img");
+      var imgEl = item.selectFirst("img");
       String imageSlug = imgEl != null ? imgEl.getSrc : "";
       String imageUrl = imageSlug.contains("http")
           ? imageSlug
@@ -75,7 +75,7 @@ class DefaultExtension extends MProvider {
       }
     }
 
-    List<Element> pager = doc.select("ul.pager > li");
+    var pager = doc.select("ul.pager > li");
     bool hasNextPage = false;
     if (pager.isNotEmpty) {
       String lastText = pager.last.text;
@@ -135,23 +135,23 @@ class DefaultExtension extends MProvider {
       cleanUrl = cleanUrl.replaceAll(baseUrl, "");
     }
 
-    Document doc = await request(cleanUrl);
-    Element? detailsSection = doc.selectFirst(".barContent");
+    var doc = await request(cleanUrl);
+    var detailsSection = doc.selectFirst(".barContent");
     if (detailsSection == null) {
       throw Exception("Impossibile caricare i dettagli (Cloudflare)");
     }
 
-    Element? nameEl = detailsSection.selectFirst("a");
+    var nameEl = detailsSection.selectFirst("a");
     String name = nameEl != null ? nameEl.text.trim() : "Unknown";
 
-    Element? rightBox = doc.selectFirst(".rightBox");
-    Element? imgEl = rightBox != null ? rightBox.selectFirst("img") : null;
+    var rightBox = doc.selectFirst(".rightBox");
+    var imgEl = rightBox != null ? rightBox.selectFirst("img") : null;
     String imageSlug = imgEl != null ? imgEl.getSrc : "";
     String imageUrl = imageSlug.contains("http")
         ? imageSlug
         : "$baseUrl$imageSlug";
 
-    List<Element> pTag = detailsSection.select("p");
+    var pTag = detailsSection.select("p");
     String description =
         pTag.length >= 2 ? pTag[pTag.length - 2].text.trim() : "";
 
@@ -175,15 +175,15 @@ class DefaultExtension extends MProvider {
     }
 
     List<MChapter> chapters = [];
-    Element? table = doc.selectFirst("table.listing") ?? doc.selectFirst("table");
+    var table = doc.selectFirst("table.listing") ?? doc.selectFirst("table");
     if (table != null) {
-      List<Element> tr = table.select("tr");
+      var tr = table.select("tr");
       if (tr.length > 2) {
         tr.removeRange(0, 2);
         for (var item in tr) {
-          List<Element> tds = item.select("td");
+          var tds = item.select("td");
           if (tds.isNotEmpty) {
-            Element? aTag = tds[0].selectFirst("a");
+            var aTag = tds[0].selectFirst("a");
             if (aTag != null) {
               String chapLink = aTag.getHref;
               String chapTitle = aTag.text.trim().replaceAll("$name ", "");
@@ -225,7 +225,7 @@ class DefaultExtension extends MProvider {
   @override
   Future<List<String>> getPageList(String url) async {
     List<String> pages = [];
-    Document doc = await request(url);
+    var doc = await request(url);
     String html = doc.outerHtml;
 
     String baseUrlOverride = "";
