@@ -13,7 +13,7 @@ const mangayomiSources = [
     "iconUrl": "https://www.google.com/s2/favicons?sz=256&domain=https://readcomicsonline.ru/",
     "typeSource": "single",
     "itemType": 0,
-    "version": "0.2.6",
+    "version": "0.2.7",
     "pkgPath": "readcomicsonline.dart"
   }
 ];
@@ -70,30 +70,60 @@ class DefaultExtension extends MProvider {
     String baseUrl = getBaseUrl;
     List<MManga> list = [];
 
+    // 1. Prova prima con i selettori di lista standard
     var comicList = doc.select(".list-comic .item");
     if (comicList.isEmpty) comicList = doc.select(".group-item");
     if (comicList.isEmpty) comicList = doc.select(".item");
-    if (comicList.isEmpty) comicList = doc.select("div.col-md-2, div.col-xs-4");
 
-    for (var item in comicList) {
-      var titleEl = item.selectFirst(".title") ?? item.selectFirst("a.title") ?? item.selectFirst("a");
-      String name = (titleEl != null && titleEl.text != null) ? titleEl.text.trim() : "";
+    if (comicList.isNotEmpty) {
+      for (var item in comicList) {
+        var titleEl = item.selectFirst(".title") ?? item.selectFirst("a.title") ?? item.selectFirst("a");
+        String name = (titleEl != null && titleEl.text != null) ? titleEl.text.trim() : "";
 
-      var linkEl = item.selectFirst("a");
-      String link = linkEl != null ? (linkEl.getHref ?? "") : "";
+        var linkEl = item.selectFirst("a");
+        String link = linkEl != null ? (linkEl.getHref ?? "") : "";
 
-      var imgEl = item.selectFirst("img");
-      String imageSlug = imgEl != null ? (imgEl.getSrc ?? "") : "";
-      String imageUrl = imageSlug.contains("http")
-          ? imageSlug
-          : "$baseUrl$imageSlug";
+        var imgEl = item.selectFirst("img");
+        String imageSlug = imgEl != null ? (imgEl.getSrc ?? "") : "";
+        String imageUrl = imageSlug.contains("http")
+            ? imageSlug
+            : "$baseUrl$imageSlug";
 
-      if (name.isNotEmpty && link.isNotEmpty && link.contains("/Comic/")) {
-        MManga manga = MManga();
-        manga.name = name;
-        manga.link = link;
-        manga.imageUrl = imageUrl;
-        list.add(manga);
+        if (name.isNotEmpty && link.isNotEmpty && link.contains("/Comic/")) {
+          MManga manga = MManga();
+          manga.name = name;
+          manga.link = link;
+          manga.imageUrl = imageUrl;
+          list.add(manga);
+        }
+      }
+    }
+
+    // 2. Fallback aggressivo: Cerca direttamente tutti i link ai fumetti nel documento
+    if (list.isEmpty) {
+      var allLinks = doc.select("a");
+      Set<String> addedLinks = {};
+
+      for (var a in allLinks) {
+        String link = a.getHref ?? "";
+        String name = a.text != null ? a.text.trim() : "";
+        
+        if (link.contains("/Comic/") && !addedLinks.contains(link) && name.length > 1) {
+          addedLinks.add(link);
+          
+          var parent = a.parent;
+          var imgEl = parent != null ? parent.selectFirst("img") : null;
+          String imageSlug = imgEl != null ? (imgEl.getSrc ?? "") : "";
+          String imageUrl = imageSlug.contains("http")
+              ? imageSlug
+              : "$baseUrl$imageSlug";
+
+          MManga manga = MManga();
+          manga.name = name;
+          manga.link = link;
+          manga.imageUrl = imageUrl;
+          list.add(manga);
+        }
       }
     }
 
@@ -109,7 +139,7 @@ class DefaultExtension extends MProvider {
 
   @override
   Future<MPages> getPopular(int page) async {
-    return await getListPage("/", page);
+    return await getListPage("/ComicList/MostPopular", page);
   }
 
   @override
@@ -123,7 +153,7 @@ class DefaultExtension extends MProvider {
       String slug = "/AdvanceSearch?comicName=${Uri.encodeComponent(query)}";
       return await getListPage(slug, page);
     }
-    return await getListPage("/", page);
+    return await getListPage("/ComicList/MostPopular", page);
   }
 
   @override
