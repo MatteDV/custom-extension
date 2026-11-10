@@ -9,7 +9,7 @@
     "typeSource": "single",
     "type": "manga",
     "itemType": 0,
-    "version": "0.1.5",
+    "version": "0.1.6",
     "pkgName": "readcomicsonline.js",
     "pkgPath": "readcomicsonline.js",
     "sourceCodeUrl": "https://raw.githubusercontent.com/MatteDV/custom-extension/main/readcomicsonline.js"
