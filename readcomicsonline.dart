@@ -13,7 +13,7 @@ const mangayomiSources = [
     "iconUrl": "https://www.google.com/s2/favicons?sz=256&domain=https://readcomicsonline.ru/",
     "typeSource": "single",
     "itemType": 0,
-    "version": "0.2.4",
+    "version": "0.2.5",
     "pkgPath": "readcomicsonline.dart"
   }
 ];
@@ -41,6 +41,7 @@ class DefaultExtension extends MProvider {
       "Referer": "$baseUrl/",
       "Origin": baseUrl,
       "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "Accept-Language": "en-US,en;q=0.9",
     };
   }
 
@@ -58,23 +59,22 @@ class DefaultExtension extends MProvider {
   }
 
   Future<MPages> getListPage(String slug, int page) async {
-    String separator = slug.contains("?") ? "&" : "?";
-    String url = "$slug${separator}page=$page";
+    String url = slug;
+    if (slug.contains("?")) {
+      url = "$slug&page=$page";
+    } else if (slug != "/" && slug != "") {
+      url = "$slug?page=$page";
+    }
+    
     var doc = await request(url);
     String baseUrl = getBaseUrl;
     List<MManga> list = [];
 
-    // Selettori estesi per adattarsi sia al vecchio layout che a quello aggiornato del dominio .ru
-    var comicList = doc.select(".list-comic > .item");
-    if (comicList.isEmpty) {
-      comicList = doc.select(".list-comic .item");
-    }
-    if (comicList.isEmpty) {
-      comicList = doc.select(".group-item");
-    }
-    if (comicList.isEmpty) {
-      comicList = doc.select("div.item");
-    }
+    // Cerca gli elementi lista oppure fallback su tutti i container con classe item o comic
+    var comicList = doc.select(".list-comic .item");
+    if (comicList.isEmpty) comicList = doc.select(".group-item");
+    if (comicList.isEmpty) comicList = doc.select(".item");
+    if (comicList.isEmpty) comicList = doc.select("div.col-md-2, div.col-xs-4");
 
     for (var item in comicList) {
       var titleEl = item.selectFirst(".title") ?? item.selectFirst("a.title") ?? item.selectFirst("a");
@@ -89,7 +89,7 @@ class DefaultExtension extends MProvider {
           ? imageSlug
           : "$baseUrl$imageSlug";
 
-      if (name.isNotEmpty && link.isNotEmpty) {
+      if (name.isNotEmpty && link.isNotEmpty && link.contains("/Comic/")) {
         MManga manga = MManga();
         manga.name = name;
         manga.link = link;
@@ -98,7 +98,7 @@ class DefaultExtension extends MProvider {
       }
     }
 
-    var pager = doc.select("ul.pager > li");
+    var pager = doc.select("ul.pager > li, .pagination > li");
     bool hasNextPage = false;
     if (pager.isNotEmpty) {
       String lastText = pager.last.text;
@@ -110,7 +110,7 @@ class DefaultExtension extends MProvider {
 
   @override
   Future<MPages> getPopular(int page) async {
-    return await getListPage("/ComicList/MostPopular", page);
+    return await getListPage("/", page);
   }
 
   @override
@@ -120,28 +120,11 @@ class DefaultExtension extends MProvider {
 
   @override
   Future<MPages> search(String query, int page, List<dynamic> filters) async {
-    String genre = "";
-    if (filters.isNotEmpty && filters[0].state != null) {
-      List<String> selected = [];
-      for (var item in filters[0].state) {
-        if (item.state == true) {
-          selected.add(item.value.toString());
-        }
-      }
-      genre = selected.join(",");
+    if (query.isNotEmpty) {
+      String slug = "/AdvanceSearch?comicName=${Uri.encodeComponent(query)}";
+      return await getListPage(slug, page);
     }
-
-    String status = (filters.length > 1 && filters[1].values != null)
-        ? filters[1].values[filters[1].state].value
-        : "";
-    String year = (filters.length > 2 && filters[2].values != null)
-        ? filters[2].values[filters[2].state].value
-        : "";
-
-    String slug =
-        "/AdvanceSearch?comicName=${Uri.encodeComponent(query)}&ig=${Uri.encodeComponent(genre)}&status=$status&pubDate=$year";
-
-    return await getListPage(slug, page);
+    return await getListPage("/", page);
   }
 
   @override
@@ -159,15 +142,15 @@ class DefaultExtension extends MProvider {
     }
 
     var doc = await request(cleanUrl);
-    var detailsSection = doc.selectFirst(".barContent");
+    var detailsSection = doc.selectFirst(".barContent") ?? doc.selectFirst(".bigBarContainer");
     if (detailsSection == null) {
-      throw Exception("Impossibile caricare i dettagli");
+      throw Exception("Impossibile caricare i dettagli (Cloudflare)");
     }
 
     var nameEl = detailsSection.selectFirst("a");
     String name = nameEl != null ? nameEl.text.trim() : "Unknown";
 
-    var rightBox = doc.selectFirst(".rightBox");
+    var rightBox = doc.selectFirst(".rightBox") ?? doc.selectFirst(".col-md-3");
     var imgEl = rightBox != null ? rightBox.selectFirst("img") : null;
     String imageSlug = imgEl != null ? imgEl.getSrc : "";
     String imageUrl = imageSlug.contains("http")
