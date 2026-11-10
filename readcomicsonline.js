@@ -7,7 +7,7 @@ const mangayomiSources = [
     "iconUrl": "https://www.google.com/s2/favicons?sz=256&domain=https://readcomicsonline.ru/",
     "typeSource": "single",
     "itemType": 0,
-    "version": "0.1.5",
+    "version": "0.1.6",
     "pkgPath": "readcomicsonline.js"
   }
 ];
@@ -23,26 +23,29 @@ class DefaultExtension extends MProvider {
   }
 
   getHeaders() {
+    var base = this.source ? this.source.baseUrl : "https://readcomicsonline.ru";
     return {
       "User-Agent":
         "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
-      "Referer": "https://readcomicsonline.ru/",
-      "Origin": "https://readcomicsonline.ru",
+      "Referer": base + "/",
+      "Origin": base
     };
   }
 
   async request(slug) {
     var url = slug;
-    var baseUrl = this.source.baseUrl;
-    if (!slug.includes(baseUrl)) url = baseUrl + slug;
+    var baseUrl = this.source ? this.source.baseUrl : "https://readcomicsonline.ru";
+    if (!slug.includes(baseUrl)) {
+      url = baseUrl + slug;
+    }
     var res = await this.client.get(url, this.getHeaders());
     return new Document(res.body);
   }
 
   async getListPage(slug, page) {
-    var url = `${slug}page=${page}`;
+    var url = slug + "page=" + page;
     var doc = await this.request(url);
-    var baseUrl = this.source.baseUrl;
+    var baseUrl = this.source ? this.source.baseUrl : "https://readcomicsonline.ru";
     var list = [];
 
     var comicList = doc.select(".list-comic > .item") || doc.select(".group-item") || [];
@@ -59,10 +62,10 @@ class DefaultExtension extends MProvider {
         var imageSlug = imgEl ? imgEl.getSrc : "";
         var imageUrl = imageSlug.includes("http")
           ? imageSlug
-          : `${baseUrl}${imageSlug}`;
+          : baseUrl + imageSlug;
 
         if (name && link) {
-          list.push({ name, link, imageUrl });
+          list.push({ name: name, link: link, imageUrl: imageUrl });
         }
       });
     }
@@ -70,18 +73,15 @@ class DefaultExtension extends MProvider {
     var pager = doc.select("ul.pager > li") || [];
     var hasNextPage = false;
     if (pager.length > 0) {
-      hasNextPage = pager[pager.length - 1].text.includes("Last") || pager[pager.length - 1].text.includes("Next");
+      var lastText = pager[pager.length - 1].text;
+      hasNextPage = lastText.includes("Last") || lastText.includes("Next");
     }
 
-    return { list, hasNextPage };
+    return { list: list, hasNextPage: hasNextPage };
   }
 
   async getPopular(page) {
     return await this.getListPage("/ComicList/MostPopular?", page);
-  }
-
-  get supportsLatest() {
-    return true;
   }
 
   async getLatestUpdates(page) {
@@ -94,7 +94,7 @@ class DefaultExtension extends MProvider {
       if (!state) return rd;
       state.forEach((item) => {
         if (item.state) {
-          rd += `${item.value},`;
+          rd += item.value + ",";
         }
       });
       return rd.slice(0, -1);
@@ -105,31 +105,28 @@ class DefaultExtension extends MProvider {
     var status = (isFiltersAvailable && filters[1]) ? filters[1].values[filters[1].state].value : "";
     var year = (isFiltersAvailable && filters[2]) ? filters[2].values[filters[2].state].value : "";
 
-    var slug = `/AdvanceSearch?comicName=${encodeURIComponent(query)}&ig=${encodeURIComponent(
-      genre
-    )}&status=${status}&pubDate=${year}&`;
+    var slug = "/AdvanceSearch?comicName=" + encodeURIComponent(query) + "&ig=" + encodeURIComponent(genre) + "&status=" + status + "&pubDate=" + year + "&";
 
     return await this.getListPage(slug, page);
   }
 
   async getDetail(url) {
     function statusCode(status) {
-      return (
-        {
-          "Ongoing": 0,
-          "Completed": 1,
-        }[status] ?? 5
-      );
+      if (status === "Ongoing") return 0;
+      if (status === "Completed") return 1;
+      return 5;
     }
 
-    var baseUrl = this.source.baseUrl;
-    if (url.includes(baseUrl)) url = url.replace(baseUrl, "");
+    var baseUrl = this.source ? this.source.baseUrl : "https://readcomicsonline.ru";
+    if (url.includes(baseUrl)) {
+      url = url.replace(baseUrl, "");
+    }
 
     var doc = await this.request(url);
 
     var detailsSection = doc.selectFirst(".barContent");
     if (!detailsSection) {
-      throw new Error("Impossibile caricare i dettagli (Cloudflare o struttura cambiata)");
+      throw new Error("Impossibile caricare i dettagli");
     }
 
     var nameEl = detailsSection.selectFirst("a");
@@ -140,7 +137,7 @@ class DefaultExtension extends MProvider {
     var imageSlug = imgEl ? imgEl.getSrc : "";
     var imageUrl = imageSlug.includes("http")
       ? imageSlug
-      : `${this.source.baseUrl}${imageSlug}`;
+      : baseUrl + imageSlug;
 
     var pTag = detailsSection.select("p") || [];
     var description = pTag.length >= 2 ? pTag[pTag.length - 2].text.trim() : "";
@@ -176,14 +173,16 @@ class DefaultExtension extends MProvider {
             var aTag = tds[0].selectFirst("a");
             if (aTag) {
               var chapLink = aTag.getHref;
-              var chapTitle = aTag.text.trim().replace(`${name} `, "");
-              chapTitle = chapTitle[0] == "_" ? chapTitle.substring(1) : chapTitle;
+              var chapTitle = aTag.text.trim().replace(name + " ", "");
+              if (chapTitle.length > 0 && chapTitle[0] === "_") {
+                chapTitle = chapTitle.substring(1);
+              }
 
               var uploadDate = tds[1] ? tds[1].text.trim() : "";
               var date = new Date(uploadDate);
               var dateUpload = isNaN(date.getTime()) ? Date.now().toString() : date.getTime().toString();
 
-              chapters.push({ url: chapLink, name: chapTitle, dateUpload });
+              chapters.push({ url: chapLink, name: chapTitle, dateUpload: dateUpload });
             }
           }
         });
@@ -191,22 +190,21 @@ class DefaultExtension extends MProvider {
     }
 
     return {
-      name,
+      name: name,
       link: baseUrl + url,
-      imageUrl,
-      description,
-      genre,
-      status,
-      author,
-      artist,
-      chapters,
+      imageUrl: imageUrl,
+      description: description,
+      genre: genre,
+      status: status,
+      author: author,
+      artist: artist,
+      chapters: chapters
     };
   }
 
   async getPageList(url) {
     var pages = [];
     var hdr = this.getHeaders();
-    let match;
     var imageQuality = this.getPreference("readcomiconline_page_quality") || "h";
 
     var doc = await this.request(url);
@@ -214,14 +212,20 @@ class DefaultExtension extends MProvider {
 
     var baseUrlOverride = "";
     const hostRegex = /return\s+baeu\s*\(\s*l\s*,\s*'([^']+?)'\s*\);?/g;
-    match = hostRegex.exec(html);
-    if (match && match.length > 1) {
-      baseUrlOverride = match[1];
-      if (baseUrlOverride.slice(-1) != "/") baseUrlOverride += "/";
+    var hostMatch = hostRegex.exec(html);
+    if (hostMatch && hostMatch.length > 1) {
+      baseUrlOverride = hostMatch[1];
+      if (baseUrlOverride.slice(-1) !== "/") {
+        baseUrlOverride += "/";
+      }
     }
 
     const pageRegex = /pht\s*=\s*'([^']+?)';?/g;
-    while ((match = pageRegex.exec(html)) !== null) {
+    var match;
+    while (true) {
+      match = pageRegex.exec(html);
+      if (match === null) break;
+      
       var encodedImageUrl = match[1];
       var decodedImageUrl = this.decodeImageUrl(
         encodedImageUrl,
@@ -230,7 +234,7 @@ class DefaultExtension extends MProvider {
       );
       pages.push({
         url: decodedImageUrl,
-        headers: hdr,
+        headers: hdr
       });
     }
     return pages;
@@ -252,7 +256,7 @@ class DefaultExtension extends MProvider {
     filters.push({
       type_name: "GroupFilter",
       name: "Genres",
-      state: formateState("CheckBox", items, values),
+      state: formateState("CheckBox", items, values)
     });
 
     return filters;
@@ -267,9 +271,9 @@ class DefaultExtension extends MProvider {
           summary: "",
           valueIndex: 2,
           entries: ["Low", "Medium", "High", "Highest"],
-          entryValues: ["l", "m", "h", "vh"],
-        },
-      },
+          entryValues: ["l", "m", "h", "vh"]
+        }
+      }
     ];
   }
 
@@ -318,7 +322,7 @@ class DefaultExtension extends MProvider {
   decodeImageUrl(encodedImageUrl, imageQuality, baseUrlOverride) {
     var IMAGEQUALITY = [
       { "l": "900", "m": "0", "h": "1600", "vh": "2041" },
-      { "l": "900", "m": "1600", "h": "2041", "vh": "0" },
+      { "l": "900", "m": "1600", "h": "2041", "vh": "0" }
     ];
 
     let finalUrl;
@@ -336,6 +340,7 @@ class DefaultExtension extends MProvider {
       qType = 1;
       finalUrl = baseUrlOverride + encodedImageUrl.split(".com/")[1];
     }
-    return finalUrl.replace("s1600", `s${IMAGEQUALITY[qType][imageQuality] || "1600"}`);
+    var targetQuality = (IMAGEQUALITY[qType] && IMAGEQUALITY[qType][imageQuality]) ? IMAGEQUALITY[qType][imageQuality] : "1600";
+    return finalUrl.replace("s1600", "s" + targetQuality);
   }
 }
