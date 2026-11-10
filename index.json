@@ -9,7 +9,7 @@
     "typeSource": "single",
     "type": "manga",
     "itemType": 0,
-    "version": "0.1.7",
+    "version": "0.1.8",
     "pkgName": "readcomicsonline.dart",
     "pkgPath": "readcomicsonline.dart",
     "sourceCodeUrl": "https://raw.githubusercontent.com/MatteDV/custom-extension/main/readcomicsonline.dart"
