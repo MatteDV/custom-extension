@@ -1,0 +1,35 @@
+[
+  {
+    "name": "ReadComicsOnline Custom",
+    "lang": "en",
+    "baseUrl": "https://readcomicsonline.ru",
+    "apiUrl": "",
+    "iconUrl": "https://www.google.com/s2/favicons?sz=256&domain=https://readcomicsonline.ru/",
+    "typeSource": "single",
+    "itemType": 0,
+    "version": "0.1.5",
+    "pkgPath": "javascript/manga/src/en/readcomicsonline.js"
+  },
+  {
+    "name": "Comick Custom",
+    "lang": "all",
+    "baseUrl": "https://comick.io",
+    "apiUrl": "https://api.comick.fun",
+    "iconUrl": "https://comick.io/static/icons/favicon-192x192.png",
+    "typeSource": "single",
+    "itemType": 0,
+    "version": "0.1.1",
+    "pkgPath": "javascript/manga/src/all/comick.js"
+  },
+  {
+    "name": "MangaWorld Custom",
+    "lang": "it",
+    "baseUrl": "https://www.mangaworld.ac",
+    "apiUrl": "",
+    "iconUrl": "https://www.google.com/s2/favicons?sz=256&domain=https://www.mangaworld.ac/",
+    "typeSource": "single",
+    "itemType": 0,
+    "version": "1.0.0",
+    "pkgPath": "javascript/manga/src/it/mangaworld.js"
+  }
+]
