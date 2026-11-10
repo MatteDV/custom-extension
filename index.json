@@ -6,9 +6,11 @@
     "apiUrl": "",
     "iconUrl": "https://www.google.com/s2/favicons?sz=256&domain=https://readcomicsonline.ru/",
     "typeSource": "single",
+    "type": "manga",
     "itemType": 0,
     "version": "0.1.5",
-    "pkgPath": "javascript/manga/src/en/readcomicsonline.js"
+    "pkgPath": "javascript/manga/src/en/readcomicsonline.js",
+    "sourceCodeUrl": "https://raw.githubusercontent.com/MatteDV/custom-extension/main/javascript/manga/src/en/readcomicsonline.js"
   },
   {
     "name": "Comick Custom",
@@ -17,9 +19,11 @@
     "apiUrl": "https://api.comick.fun",
     "iconUrl": "https://comick.io/static/icons/favicon-192x192.png",
     "typeSource": "single",
+    "type": "manga",
     "itemType": 0,
     "version": "0.1.1",
-    "pkgPath": "javascript/manga/src/all/comick.js"
+    "pkgPath": "javascript/manga/src/all/comick.js",
+    "sourceCodeUrl": "https://raw.githubusercontent.com/MatteDV/custom-extension/main/javascript/manga/src/all/comick.js"
   },
   {
     "name": "MangaWorld Custom",
@@ -28,8 +32,10 @@
     "apiUrl": "",
     "iconUrl": "https://www.google.com/s2/favicons?sz=256&domain=https://www.mangaworld.ac/",
     "typeSource": "single",
+    "type": "manga",
     "itemType": 0,
     "version": "1.0.0",
-    "pkgPath": "javascript/manga/src/it/mangaworld.js"
+    "pkgPath": "javascript/manga/src/it/mangaworld.js",
+    "sourceCodeUrl": "https://raw.githubusercontent.com/MatteDV/custom-extension/main/javascript/manga/src/it/mangaworld.js"
   }
 ]
