@@ -1,46 +1,17 @@
-{
-  "name": "MatteDV Custom Repository",
-  "icon": "https://raw.githubusercontent.com/MatteDV/custom-extension/main/javascript/icon/all.comick.png",
-  "website": "https://github.com/MatteDV/custom-extension",
-  "sources": [
-    {
-      "name": "ReadComicsOnline Custom",
-      "lang": "en",
-      "baseUrl": "https://readcomicsonline.ru",
-      "apiUrl": "",
-      "iconUrl": "https://www.google.com/s2/favicons?sz=256&domain=https://readcomicsonline.ru/",
-      "typeSource": "single",
-      "itemType": 0,
-      "version": "0.1.5",
-      "pkgName": "readcomicsonline.js",
-      "pkgPath": "javascript/manga/src/en/readcomicsonline.js",
-      "sourceCodeUrl": "https://raw.githubusercontent.com/MatteDV/custom-extension/main/javascript/manga/src/en/readcomicsonline.js"
-    },
-    {
-      "name": "Comick Custom",
-      "lang": "all",
-      "baseUrl": "https://comick.io",
-      "apiUrl": "https://api.comick.fun",
-      "iconUrl": "https://comick.io/static/icons/favicon-192x192.png",
-      "typeSource": "single",
-      "itemType": 0,
-      "version": "0.1.1",
-      "pkgName": "comick.js",
-      "pkgPath": "javascript/manga/src/all/comick.js",
-      "sourceCodeUrl": "https://raw.githubusercontent.com/MatteDV/custom-extension/main/javascript/manga/src/all/comick.js"
-    },
-    {
-      "name": "MangaWorld Custom",
-      "lang": "it",
-      "baseUrl": "https://www.mangaworld.ac",
-      "apiUrl": "",
-      "iconUrl": "https://www.google.com/s2/favicons?sz=256&domain=https://www.mangaworld.ac/",
-      "typeSource": "single",
-      "itemType": 0,
-      "version": "1.0.0",
-      "pkgName": "mangaworld.js",
-      "pkgPath": "javascript/manga/src/it/mangaworld.js",
-      "sourceCodeUrl": "https://raw.githubusercontent.com/MatteDV/custom-extension/main/javascript/manga/src/it/mangaworld.js"
-    }
-  ]
-}
+[
+  {
+    "name": "ReadComicsOnline Custom",
+    "id": 9991001,
+    "lang": "en",
+    "baseUrl": "https://readcomicsonline.ru",
+    "apiUrl": "",
+    "iconUrl": "https://www.google.com/s2/favicons?sz=256&domain=https://readcomicsonline.ru/",
+    "typeSource": "single",
+    "type": "manga",
+    "itemType": 0,
+    "version": "0.1.5",
+    "pkgName": "readcomicsonline.js",
+    "pkgPath": "readcomicsonline.js",
+    "sourceCodeUrl": "https://raw.githubusercontent.com/MatteDV/custom-extension/main/readcomicsonline.js"
+  }
+]
