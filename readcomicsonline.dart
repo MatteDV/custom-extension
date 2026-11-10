@@ -1,6 +1,6 @@
 import 'package:mangayomi/bridge_lib.dart';
 
-void main() {}
+void main(dynamic source) {}
 
 const mangayomiSources = [
   {
@@ -11,7 +11,7 @@ const mangayomiSources = [
     "iconUrl": "https://www.google.com/s2/favicons?sz=256&domain=https://readcomicsonline.ru/",
     "typeSource": "single",
     "itemType": 0,
-    "version": "0.1.8",
+    "version": "0.1.9",
     "pkgPath": "readcomicsonline.dart"
   }
 ];
